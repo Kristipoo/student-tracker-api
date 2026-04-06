@@ -1,22 +1,39 @@
 from fastapi import FastAPI
+import sqlite3
 
+def get_db():
+    conn = sqlite3.connect("StudyTracker.db")
+    return conn
+
+conn = get_db()
+cursor = conn.cursor()
+cursor.execute("""
+    CREATE TABLE IF NOT EXISTS sessions (
+        id INTEGER PRIMARY KEY, 
+        subject TEXT, 
+        duration_minutes INTEGER
+    )
+""")
+conn.commit()
+conn.close()
 
 app = FastAPI()
 
-@app.get("/")
-def root():
-    return {"message": "Study Tracker API"}
-
 @app.get("/sessions")
 def get_sessions():
-    sessions = [
-        {"id": 1, "subject": "Info104", "duration_minutes": 90},
-        {"id": 2, "subject": "Info110", "duration_minutes": 90},
-    ]
-    return sessions
+    conn = get_db()
+    cursor = conn.cursor()
+    cursor.execute("SELECT * FROM sessions")
+    rows = cursor.fetchall()
+    conn.close()
+    return rows
 
 @app.post("/sessions")
 def create_sessions(subject: str, duration: int):
-    return{"created": True}
-
-
+    conn = get_db()
+    cursor = conn.cursor()
+    cursor.execute("INSERT INTO sessions (subject, duration_minutes) VALUES (?, ?)",
+                   (subject, duration))
+    conn.commit()
+    conn.close()
+    return {"created": True}
